@@ -51,6 +51,7 @@ import android.content.Context
 import android.os.Build
 import androidx.core.app.NotificationCompat
 
+// some modification
 class MainActivity : ComponentActivity() {
 
     val buttonWidth = 150.dp
