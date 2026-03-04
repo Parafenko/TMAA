@@ -59,6 +59,7 @@ class MainActivity : ComponentActivity() {
     val actionbuttonSpacer = 30.dp
     val buttonSpacer = 15.dp
     val blocksSeparator = 25.dp
+    val something = 5
 
     object Stats {
         var hp by mutableStateOf("")
