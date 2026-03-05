@@ -7,25 +7,23 @@ import java.io.File
 
 @Serializable
 data class Data(
-    var tmphp: String = "",
-    var maxhp: String = "",
-    var hp: String = "",
-    var name: String = "",
-    var ac: String = "",
-    var messages: List<String> = emptyList(),
+    var tmphp: Int = 0,
+    var maxhp: Int = 0,
+    var hp:    Int = 0,
+    var ac:    Int = 0,
     var spellscount: Spellscount = Spellscount()
 )
 @Serializable
 data class Spellscount(
-    var level1: String = "0",
-    var level2: String = "0",
-    var level3: String = "0",
-    var level4: String = "0",
-    var level5: String = "0",
-    var level6: String = "0",
-    var level7: String = "0",
-    var level8: String = "0",
-    var level9: String = "0"
+    var level1: Int = 0,
+    var level2: Int = 0,
+    var level3: Int = 0,
+    var level4: Int = 0,
+    var level5: Int = 0,
+    var level6: Int = 0,
+    var level7: Int = 0,
+    var level8: Int = 0,
+    var level9: Int = 0
 )
 
 
@@ -33,7 +31,7 @@ val jsonParser = Json {
     ignoreUnknownKeys = true
     prettyPrint = true
 }
-fun getJsonContent(context: Context): String {
+fun GetJsonContent(context: Context): String {
     val filename = "data.json"
     val file = File(context.filesDir, filename)
 
@@ -43,10 +41,10 @@ fun getJsonContent(context: Context): String {
     )
 }
 
-fun get_value(context: Context, name: String):String{
-    val jsonContent = getJsonContent(context)
+fun GetValue(context: Context, name: String):Int{
+    val jsonContent = GetJsonContent(context)
     val data = jsonParser.decodeFromString<List<Data>>(jsonContent).firstOrNull()
-        ?: return "not found"
+        ?: return 0
     return when(name){
         "hp" -> data.hp
         "tmphp" -> data.tmphp
@@ -61,21 +59,23 @@ fun get_value(context: Context, name: String):String{
         "level7" -> data.spellscount.level7
         "level8" -> data.spellscount.level8
         "level9" -> data.spellscount.level9
-        else -> "0"
+        else -> 0
     }
 }
 
 
-fun set_value(context: Context, name: String, value: String){
+fun SetValue(context: Context, name: String, value: Int){
     val filename = "data.json"
     val file = File(context.filesDir, filename)
-    val jsonContent = getJsonContent(context)
+    val jsonContent = GetJsonContent(context)
     val datalist = jsonParser.decodeFromString<List<Data>>(jsonContent)
+
+
     val data = datalist.firstOrNull() ?: return
     when (name){
         "hp" -> data.hp = value
         "tmphp" -> data.tmphp = value
-        "maxhp" -> data.maxhp =value
+        "maxhp" -> data.maxhp = value
         "ac" -> data.ac = value
         "level1" -> data.spellscount.level1 = value
         "level2" -> data.spellscount.level2 = value
