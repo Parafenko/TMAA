@@ -1,6 +1,6 @@
 package com.example.myapplication
 
-//05.03 16.17
+
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -45,6 +45,8 @@ import android.content.Context
 import android.os.Build
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.core.app.NotificationCompat
+import androidx.room.Room
+import com.google.firebase.firestore.FirebaseFirestore
 
 class MainActivity : ComponentActivity() {
 
@@ -53,26 +55,29 @@ class MainActivity : ComponentActivity() {
     val actionbuttonSpacer = 30.dp
     val buttonSpacer = 15.dp
     val blocksSeparator = 25.dp
+    val firebase = FirebaseFirestore.getInstance()
+    lateinit var userDao: UserDao
+    lateinit var user: User
 
     enum class Names(val exp: String, val value: String){
-        HP("HP", value = "hp"),
-        MaxHP("Max HP", value = "maxhp"),
-        TmpHP("Tmp.HP", value = "tmphp"),
-        AC("AC", value = "ac"),
+        HP("HP", value = "HP"),
+        MaxHP("Max HP", value = "MaxHP"),
+        TmpHP("Tmp.HP", value = "Tmp.HP"),
+        AC("AC", value = "AC"),
         TakeDamage("Take Dmg.", value = ""),
         Heal("Heal", value = ""),
 
     }
-    enum class Levels(val exp: String){
-        Level1("Level 1"),
-        Level2("Level 2"),
-        Level3("Level 3"),
-        Level4("Level 4"),
-        Level5("Level 5"),
-        Level6("Level 6"),
-        Level7("Level 7"),
-        Level8("Level 8"),
-        Level9("Level 9")
+    enum class Levels(val exp: String, val value: String){
+        Level1("Level 1", value = "Level1"),
+        Level2("Level 2", value = "Level2"),
+        Level3("Level 3", value = "Level3"),
+        Level4("Level 4", value = "Level4"),
+        Level5("Level 5", value = "Level5"),
+        Level6("Level 6", value = "Level6"),
+        Level7("Level 7", value = "Level7"),
+        Level8("Level 8", value = "Level8"),
+        Level9("Level 9", value = "Level9")
 
     }
 
@@ -97,6 +102,26 @@ class MainActivity : ComponentActivity() {
                 requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
             }
             super.onCreate(savedInstanceState)
+            val db = Room.databaseBuilder(
+                applicationContext,
+                com.example.myapplication.AppDatabase::class.java, "database-name"
+            ).allowMainThreadQueries().build()
+
+            userDao = db.userDao()
+            var users = userDao.getAll()
+
+        if (users.isEmpty()) {
+            val initialUsers = (
+                    User(
+                        HP = 0, TmpHP = 0, MaxHP = 0, AC = 0,
+                        Level1 = 0, Level2 = 0, Level3 = 0,
+                        Level4 = 0, Level5 = 0, Level6 = 0,
+                        Level7 = 0, Level8 = 0, Level9 = 0
+                    ))
+            userDao.insert(initialUsers)
+        }
+            users = userDao.getAll()
+            user = userDao.getUser()
             enableEdgeToEdge()
             setContent {
                 MyApplicationTheme {
@@ -105,19 +130,19 @@ class MainActivity : ComponentActivity() {
                         val context = LocalContext.current
 
                         LaunchedEffect(Unit) {
-                            GetValue(context, "hp").also { Stats.hp = it }
-                            Stats.tmphp  = GetValue(context, "tmphp")
-                            Stats.maxhp  = GetValue(context, "maxhp")
-                            Stats.ac     = GetValue(context, "ac")
-                            Stats.level1 = GetValue(context, "level1")
-                            Stats.level2 = GetValue(context, "level2")
-                            Stats.level3 = GetValue(context, "level3")
-                            Stats.level4 = GetValue(context, "level4")
-                            Stats.level5 = GetValue(context, "level5")
-                            Stats.level6 = GetValue(context, "level6")
-                            Stats.level7 = GetValue(context, "level7")
-                            Stats.level8 = GetValue(context, "level8")
-                            Stats.level9 = GetValue(context, "level9")
+                            Stats.hp     = getValuebyUser(user, "HP")
+                            Stats.tmphp  = getValuebyUser(user, "Tmp.HP")
+                            Stats.maxhp  = getValuebyUser(user, "MaxHP")
+                            Stats.ac     = getValuebyUser(user, "AC")
+                            Stats.level1 = getValuebyUser(user, "Level1")
+                            Stats.level2 = getValuebyUser(user, "Level2")
+                            Stats.level3 = getValuebyUser(user, "Level3")
+                            Stats.level4 = getValuebyUser(user, "Level4")
+                            Stats.level5 = getValuebyUser(user, "Level5")
+                            Stats.level6 = getValuebyUser(user, "Level6")
+                            Stats.level7 = getValuebyUser(user, "Level7")
+                            Stats.level8 = getValuebyUser(user, "Level8")
+                            Stats.level9 = getValuebyUser(user, "Level9")
                         }
                         Column(
                             modifier = Modifier
@@ -157,7 +182,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-
     @Composable
     fun MakeParametrsChangersLine(name1: String? = null, name2: String? = null){
         Row{
@@ -166,10 +190,8 @@ class MainActivity : ComponentActivity() {
             ParametrChanger(name2)
         }
     }
-
     @Composable
     fun ParametrChanger(name: String? = null ){
-        //val context = LocalContext.current
         var isOverlayVisible by remember { mutableStateOf(false) }
         if (name != null) {
             if (isOverlayVisible) {
@@ -196,7 +218,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
     @Composable
     fun ChangerWindow(onClose: () -> Unit, name: String? = null){
         Dialog(
@@ -242,7 +263,6 @@ class MainActivity : ComponentActivity() {
 
             }
         }
-
     @Composable
     fun Spells(onClose: () -> Unit) {
         Dialog(
@@ -286,11 +306,11 @@ class MainActivity : ComponentActivity() {
                     when (name) {
                         Names.HP.exp -> {
                             Stats.hp = newValue
-                            SetValue(context, Names.HP.value, newValue)
+                            setValuebyUser(user, userDao, Names.HP.value, newValue)
                         }
                         Names.TmpHP.exp -> {
                             Stats.tmphp = newValue
-                            SetValue(context, Names.TmpHP.value, newValue)
+                            setValuebyUser(user, userDao, Names.TmpHP.value, newValue)
                         }
                     }
                 }
@@ -351,39 +371,39 @@ class MainActivity : ComponentActivity() {
             when (name) {
                 "Level 1" -> {
                     Stats.level1 = newValue
-                    SetValue(context, "level1", newValue)
+                    setValuebyUser(user, userDao, Levels.Level1.value, newValue)
                 }
                 "Level 2" -> {
                     Stats.level2 = newValue
-                    SetValue(context, "level2", newValue)
+                    setValuebyUser(user, userDao, Levels.Level2.value, newValue)
                 }
                 "Level 3" -> {
                     Stats.level3 = newValue
-                    SetValue(context, "level3", newValue)
+                    setValuebyUser(user, userDao, Levels.Level3.value, newValue)
                 }
                 "Level 4" -> {
                     Stats.level4 = newValue
-                    SetValue(context, "level4", newValue)
+                    setValuebyUser(user, userDao, Levels.Level4.value, newValue)
                 }
                 "Level 5" -> {
                     Stats.level5 = newValue
-                    SetValue(context, "level5", newValue)
+                    setValuebyUser(user, userDao, Levels.Level5.value, newValue)
                 }
                 "Level 6" -> {
                     Stats.level6 = newValue
-                    SetValue(context, "level6", newValue)
+                    setValuebyUser(user, userDao, Levels.Level6.value, newValue)
                 }
                 "Level 7" -> {
                     Stats.level7 = newValue
-                    SetValue(context, "level7", newValue)
+                    setValuebyUser(user, userDao, Levels.Level7.value, newValue)
                 }
                 "Level 8" -> {
                     Stats.level8 = newValue
-                    SetValue(context, "level8", newValue)
+                    setValuebyUser(user, userDao, Levels.Level8.value, newValue)
                 }
                 "Level 9" -> {
                     Stats.level9 = newValue
-                    SetValue(context, "level9", newValue)
+                    setValuebyUser(user, userDao, Levels.Level9.value, newValue)
                 }
             }
 
@@ -478,42 +498,65 @@ class MainActivity : ComponentActivity() {
 
                     Spacer(modifier = Modifier.height(buttonSpacer))
 
+                    makeCloudLine()
+
+                    Spacer(modifier = Modifier.height(buttonSpacer))
+
                     Button(onClick = onClose){Text("Exit")}
+
                 }
             }
         }
-    }}
+    }
+    }
 
-    // Non @Composable
+    @Composable
+    fun makeCloudLine(){
+        Row{
+            Button(
+                onClick = {cloudSave(this@MainActivity)},
+                modifier = Modifier.width(buttonWidth)
+            ) {
+                Text("Cloud save")
+            }
+            Spacer(modifier = Modifier.width(15.dp))
+
+            Button( onClick={cloudLoad(this@MainActivity)},
+                modifier = Modifier.width(buttonWidth)
+            ) {
+                Text("Cloud load")
+            }
+        }
+    }
+
 
     fun setStats(name: String, value: Int){
         when(name){
             Names.MaxHP.value -> {
                 Stats.maxhp = value
-                SetValue(this@MainActivity, Names.MaxHP.value, value)
+                setValuebyUser(user, userDao, Names.MaxHP.value, value)
             }
             Names.AC.value -> {
                 Stats.ac = value
-                SetValue(this@MainActivity, Names.AC.value, value)
+                setValuebyUser(user, userDao, Names.AC.value, value)
             }
             Names.HP.value -> {
                 if (value < Stats.maxhp) {
                     Stats.hp = value
-                    SetValue(this@MainActivity, Names.HP.value, value)
+                    setValuebyUser(user, userDao, Names.HP.value, value)
                 } else {
                     Stats.hp = Stats.maxhp
-                    SetValue(this@MainActivity, Names.HP.value, Stats.maxhp)
+                    setValuebyUser(user, userDao, Names.HP.value, Stats.maxhp)
                 }
             }
             Names.TmpHP.value -> {
                     Stats.tmphp = value
-                    SetValue(this@MainActivity, Names.TmpHP.value, value)
+                    setValuebyUser(user, userDao, Names.TmpHP.value, value)
             }
             else -> return
         }
 
     }
-
     fun takeDamage(value: Int){
         val damage = value
         val tmp = Stats.tmphp //?: 0
@@ -530,8 +573,8 @@ class MainActivity : ComponentActivity() {
         if (Stats.hp < 0){
             Stats.hp = 0
         }
-        SetValue(this@MainActivity, Names.TmpHP.value, Stats.tmphp)
-        SetValue(this@MainActivity, Names.HP.value, Stats.hp)
+        setValuebyUser(user, userDao, Names.TmpHP.value, Stats.tmphp)
+        setValuebyUser(user, userDao, Names.HP.value, Stats.hp)
     }
 
     fun addHP( name: String, value: Int) {
@@ -540,19 +583,18 @@ class MainActivity : ComponentActivity() {
             when (name){
                 Names.HP.value ->{
                     Stats.hp += value
-                    SetValue(this@MainActivity, Names.HP.value, Stats.hp)
+                    setValuebyUser(user, userDao, Names.HP.value, Stats.hp)
                 }
                 Names.TmpHP.value -> {
                     Stats.tmphp += value
-                    SetValue(this@MainActivity, Names.TmpHP.value, Stats.tmphp)
+                    setValuebyUser(user, userDao, Names.TmpHP.value, Stats.tmphp)
                 }
             }
 
         }
         if(Stats.hp > Stats.maxhp){
             Stats.hp = Stats.maxhp
-            SetValue(this@MainActivity, Names.HP.value, Stats.hp)
-        //????? //SetValue(this@MainActivity, Names.HP.value, Stats.hp)
+            setValuebyUser(user, userDao, Names.HP.value, Stats.hp)
         }
     }
 
