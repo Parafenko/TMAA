@@ -79,24 +79,24 @@ class MainActivity : ComponentActivity() {
 
     }
 
-    class Stat(val value: Int, val max: Int?){
+    class Attribute(val value: Int, val max: Int?){
         var current by mutableIntStateOf(value)
         var maxvalue by mutableStateOf(max)
     }
 
     object Stats {
-        var hp = Stat(0, 0)
-        var tmphp = Stat(0, null)
-        var ac = Stat(0, null)
-        var level1 = Stat(0, 0)
-        var level2 = Stat(0, 0)
-        var level3 = Stat(0, 0)
-        var level4 = Stat(0, 0)
-        var level5 = Stat(0, 0)
-        var level6 = Stat(0, 0)
-        var level7 = Stat(0, 0)
-        var level8 = Stat(0, 0)
-        var level9 = Stat(0, 0)
+        var hp = Attribute(0, 0)
+        var tmphp = Attribute(0, null)
+        var ac = Attribute(0, null)
+        var level1 = Attribute(0, 0)
+        var level2 = Attribute(0, 0)
+        var level3 = Attribute(0, 0)
+        var level4 = Attribute(0, 0)
+        var level5 = Attribute(0, 0)
+        var level6 = Attribute(0, 0)
+        var level7 = Attribute(0, 0)
+        var level8 = Attribute(0, 0)
+        var level9 = Attribute(0, 0)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
