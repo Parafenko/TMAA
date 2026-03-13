@@ -46,7 +46,6 @@ import android.os.Build
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.core.app.NotificationCompat
 import androidx.room.Room
-import com.google.firebase.firestore.FirebaseFirestore
 
 class MainActivity : ComponentActivity() {
 
@@ -55,157 +54,166 @@ class MainActivity : ComponentActivity() {
     val actionbuttonSpacer = 30.dp
     val buttonSpacer = 15.dp
     val blocksSeparator = 25.dp
-    val firebase = FirebaseFirestore.getInstance()
+
     lateinit var userDao: UserDao
     lateinit var user: User
 
-    enum class Names(val exp: String, val value: String){
-        HP("HP", value = "HP"),
-        MaxHP("Max HP", value = "MaxHP"),
-        TmpHP("Tmp.HP", value = "Tmp.HP"),
-        AC("AC", value = "AC"),
-        TakeDamage("Take Dmg.", value = ""),
-        Heal("Heal", value = ""),
+    enum class Names(val value: String){
+        HP("HP"),
+        MaxHP("Max.HP"),
+        TmpHP("Tmp.HP"),
+        AC("AC"),
+        TakeDamage("Take Dmg."),
+        Heal("Heal"),
+    }
+    enum class Levels(val exp: String, val value: String, val maxvalue: String){
+        Level1("Level 1", value = "Level1","MaxLevel1"),
+        Level2("Level 2", value = "Level2","MaxLevel2"),
+        Level3("Level 3", value = "Level3","MaxLevel3"),
+        Level4("Level 4", value = "Level4","MaxLevel4"),
+        Level5("Level 5", value = "Level5","MaxLevel5"),
+        Level6("Level 6", value = "Level6","MaxLevel6"),
+        Level7("Level 7", value = "Level7","MaxLevel7"),
+        Level8("Level 8", value = "Level8","MaxLevel8"),
+        Level9("Level 9", value = "Level9","MaxLevel9")
 
     }
-    enum class Levels(val exp: String, val value: String){
-        Level1("Level 1", value = "Level1"),
-        Level2("Level 2", value = "Level2"),
-        Level3("Level 3", value = "Level3"),
-        Level4("Level 4", value = "Level4"),
-        Level5("Level 5", value = "Level5"),
-        Level6("Level 6", value = "Level6"),
-        Level7("Level 7", value = "Level7"),
-        Level8("Level 8", value = "Level8"),
-        Level9("Level 9", value = "Level9")
 
+    class Stat(val value: Int, val max: Int?){
+        var current by mutableIntStateOf(value)
+        var maxvalue by mutableStateOf(max)
     }
 
     object Stats {
-        var hp     by mutableIntStateOf(0 )
-        var tmphp  by mutableIntStateOf(0 )
-        var maxhp  by mutableIntStateOf(0 )
-        var ac     by mutableIntStateOf(0 )
-        var level1 by mutableIntStateOf(0 )
-        var level2 by mutableIntStateOf(0 )
-        var level3 by mutableIntStateOf(0 )
-        var level4 by mutableIntStateOf(0 )
-        var level5 by mutableIntStateOf(0 )
-        var level6 by mutableIntStateOf(0 )
-        var level7 by mutableIntStateOf(0 )
-        var level8 by mutableIntStateOf(0 )
-        var level9 by mutableIntStateOf(0 )
+        var hp = Stat(0, 0)
+        var tmphp = Stat(0, null)
+        var ac = Stat(0, null)
+        var level1 = Stat(0, 0)
+        var level2 = Stat(0, 0)
+        var level3 = Stat(0, 0)
+        var level4 = Stat(0, 0)
+        var level5 = Stat(0, 0)
+        var level6 = Stat(0, 0)
+        var level7 = Stat(0, 0)
+        var level8 = Stat(0, 0)
+        var level9 = Stat(0, 0)
     }
 
-        override fun onCreate(savedInstanceState: Bundle?) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
-            }
-            super.onCreate(savedInstanceState)
-            val db = Room.databaseBuilder(
-                applicationContext,
-                com.example.myapplication.AppDatabase::class.java, "database-name"
-            ).allowMainThreadQueries().build()
+    override fun onCreate(savedInstanceState: Bundle?) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+        }
+        super.onCreate(savedInstanceState)
+        val db = Room.databaseBuilder(
+            applicationContext,
+            AppDatabase::class.java, "database-name"
+        ).allowMainThreadQueries().build()
 
-            userDao = db.userDao()
-            var users = userDao.getAll()
+        userDao = db.userDao()
+        val users = userDao.getAll()
 
         if (users.isEmpty()) {
             val initialUsers = (
-                    User(
-                        HP = 0, TmpHP = 0, MaxHP = 0, AC = 0,
-                        Level1 = 0, Level2 = 0, Level3 = 0,
-                        Level4 = 0, Level5 = 0, Level6 = 0,
-                        Level7 = 0, Level8 = 0, Level9 = 0
-                    ))
+                User(
+                    HP = 0, TmpHP = 0, MaxHP = 0, AC = 0,
+                    Level1 = 0, Level2 = 0, Level3 = 0,
+                    Level4 = 0, Level5 = 0, Level6 = 0,
+                    Level7 = 0, Level8 = 0, Level9 = 0,
+                    MaxLevel1 = 10, MaxLevel2 = 10, MaxLevel3 = 10,
+                    MaxLevel4 = 10, MaxLevel5 = 10, MaxLevel6 = 10,
+                    MaxLevel7 = 10, MaxLevel8 = 10, MaxLevel9 = 10
+                ))
             userDao.insert(initialUsers)
         }
-            users = userDao.getAll()
-            user = userDao.getUser()
-            enableEdgeToEdge()
-            setContent {
-                MyApplicationTheme {
-                    Scaffold(modifier = Modifier.fillMaxSize())
-                    {   innerPadding ->
-                        val context = LocalContext.current
+        user = userDao.getUser()
+        enableEdgeToEdge()
+        setContent {
+            MyApplicationTheme {
+                Scaffold(modifier = Modifier.fillMaxSize())
+                {   innerPadding ->
 
-                        LaunchedEffect(Unit) {
-                            Stats.hp     = getValuebyUser(user, "HP")
-                            Stats.tmphp  = getValuebyUser(user, "Tmp.HP")
-                            Stats.maxhp  = getValuebyUser(user, "MaxHP")
-                            Stats.ac     = getValuebyUser(user, "AC")
-                            Stats.level1 = getValuebyUser(user, "Level1")
-                            Stats.level2 = getValuebyUser(user, "Level2")
-                            Stats.level3 = getValuebyUser(user, "Level3")
-                            Stats.level4 = getValuebyUser(user, "Level4")
-                            Stats.level5 = getValuebyUser(user, "Level5")
-                            Stats.level6 = getValuebyUser(user, "Level6")
-                            Stats.level7 = getValuebyUser(user, "Level7")
-                            Stats.level8 = getValuebyUser(user, "Level8")
-                            Stats.level9 = getValuebyUser(user, "Level9")
+                    LaunchedEffect(Unit) {
+                        Stats.hp.current   = getValuebyUser(user, Names.HP.value)
+                        Stats.hp.maxvalue  = getValuebyUser(user, Names.MaxHP.value)
+
+                        Stats.tmphp.current  = getValuebyUser(user, Names.TmpHP.value)
+                        Stats.ac.current     = getValuebyUser(user, Names.AC.value)
+
+                        Stats.level1.current = getValuebyUser(user, Levels.Level1.value)
+                        Stats.level2.current = getValuebyUser(user, Levels.Level2.value)
+                        Stats.level3.current = getValuebyUser(user, Levels.Level3.value)
+                        Stats.level4.current = getValuebyUser(user, Levels.Level4.value)
+                        Stats.level5.current = getValuebyUser(user, Levels.Level5.value)
+                        Stats.level6.current = getValuebyUser(user, Levels.Level6.value)
+                        Stats.level7.current = getValuebyUser(user, Levels.Level7.value)
+                        Stats.level8.current = getValuebyUser(user, Levels.Level8.value)
+                        Stats.level9.current = getValuebyUser(user, Levels.Level9.value)
+
+                        Stats.level1.maxvalue = getValuebyUser(user, Levels.Level1.maxvalue)
+                        Stats.level2.maxvalue = getValuebyUser(user, Levels.Level2.maxvalue)
+                        Stats.level3.maxvalue = getValuebyUser(user, Levels.Level3.maxvalue)
+                        Stats.level4.maxvalue = getValuebyUser(user, Levels.Level4.maxvalue)
+                        Stats.level5.maxvalue = getValuebyUser(user, Levels.Level5.maxvalue)
+                        Stats.level6.maxvalue = getValuebyUser(user, Levels.Level6.maxvalue)
+                        Stats.level7.maxvalue = getValuebyUser(user, Levels.Level7.maxvalue)
+                        Stats.level8.maxvalue = getValuebyUser(user, Levels.Level8.maxvalue)
+                        Stats.level9.maxvalue = getValuebyUser(user, Levels.Level9.maxvalue)
+                    }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                            .verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    )
+                    {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+
+                            GreetingImage()
                         }
                         Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(innerPadding)
-                                .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.Center,
                             horizontalAlignment = Alignment.CenterHorizontally
-                        )
-                        {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
+                        ) {
+                            MakeHealthLine(Names.HP.value, Names.TmpHP.value)
+                            Spacer(modifier = Modifier.height(blocksSeparator))
+                            MakeParametersChangersLine(Names.Heal.value, Names.TmpHP.value)
+                            Spacer(modifier = Modifier.height(blocksSeparator))
+                            MakeParametersChangersLine(Names.TakeDamage.value)
+                            Spacer(modifier = Modifier.height(blocksSeparator))
+                            Text("Spells", fontSize = 6.em)
+                            Spacer(modifier = Modifier.height(blocksSeparator))
 
-                                GreetingImage()
-                            }
-                            Column(
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                MakeHealthLine(Names.HP.exp, Names.TmpHP.exp)
-                                Spacer(modifier = Modifier.height(blocksSeparator))
-                                MakeParametrsChangersLine(Names.Heal.exp, Names.TmpHP.exp)
-                                Spacer(modifier = Modifier.height(blocksSeparator))
-                                MakeParametrsChangersLine(Names.TakeDamage.exp)
-                                Spacer(modifier = Modifier.height(blocksSeparator))
-                                Text("Spells", fontSize = 6.em)
-                                Spacer(modifier = Modifier.height(blocksSeparator))
-
-                                MakeSpellsline(Levels.Level1.exp, Levels.Level2.exp)
-                                MakeSpellsline(Levels.Level3.exp, Levels.Level4.exp)
-                                MakeSpellsline(Levels.Level5.exp, Levels.Level6.exp)
-                                MakeSpellsline(Levels.Level7.exp, Levels.Level8.exp)
-                                MakeSpellsline(Levels.Level9.exp)
-                            }
+                            MakeSpellsLine(Levels.Level1.exp, Levels.Level2.exp)
+                            MakeSpellsLine(Levels.Level3.exp, Levels.Level4.exp)
+                            MakeSpellsLine(Levels.Level5.exp, Levels.Level6.exp)
+                            MakeSpellsLine(Levels.Level7.exp, Levels.Level8.exp)
+                            MakeSpellsLine(Levels.Level9.exp)
                         }
                     }
                 }
             }
         }
-    @Composable
-    fun MakeParametrsChangersLine(name1: String? = null, name2: String? = null){
-        Row{
-            ParametrChanger(name1)
-            Spacer(modifier = Modifier.width(15.dp))
-            ParametrChanger(name2)
-        }
     }
     @Composable
-    fun ParametrChanger(name: String? = null ){
+    fun MakeParametersChangersLine(name1: String? = null, name2: String? = null){
+        Row{
+            ParameterChanger(name1)
+            Spacer(modifier = Modifier.width(15.dp))
+            ParameterChanger(name2)
+        }
+    }
+
+    @Composable
+    fun ParameterChanger(name: String? = null ){
         var isOverlayVisible by remember { mutableStateOf(false) }
         if (name != null) {
             if (isOverlayVisible) {
-                when (name){
-
-                    Names.Heal.exp -> ChangerWindow(onClose = { isOverlayVisible = false }, name = name)
-                    Names.TakeDamage.exp -> ChangerWindow(onClose = { isOverlayVisible = false }, name = name)
-
-                    Names.TmpHP.exp -> ChangerWindow(onClose = { isOverlayVisible = false }, name = name)
-                    Names.MaxHP.exp -> ChangerWindow(onClose = { isOverlayVisible = false }, name = name)
-                    Names.AC.exp -> ChangerWindow(onClose = { isOverlayVisible = false }, name = name)
-                    Names.HP.exp -> ChangerWindow(onClose = {isOverlayVisible = false}, name = name)
-                }
-            } else
+                ChangerWindow(onClose = { isOverlayVisible = false }, name = name)
+            }
+            else
             {
                 Column {
                     Button(
@@ -218,6 +226,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
     @Composable
     fun ChangerWindow(onClose: () -> Unit, name: String? = null){
         Dialog(
@@ -231,38 +240,39 @@ class MainActivity : ComponentActivity() {
                 val context = LocalContext.current
                 var text by rememberSaveable { mutableStateOf("") }
 
-                    Column(verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally) {
-                        TextField(
-                            value = text,
-                            onValueChange = { text = it },
-                        )
-                        Spacer(modifier = Modifier.height(20.dp))
-                        Button(
-                            onClick ={if (text.isDigitsOnly() && text.isNotEmpty()) {
-                                // Видалено зайві дужки, які блокували виконання
+                Column(verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally) {
+                    TextField(
+                        value = text,
+                        onValueChange = { text = it },
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Button(
+                        onClick ={if (text.isDigitsOnly() && text.isNotEmpty())
+                            {
                                 when (name) {
-                                    Names.TakeDamage.exp -> takeDamage(text.toInt())
-                                    Names.Heal.exp -> addHP(Names.HP.value, text.toInt())
-                                    Names.TmpHP.exp -> setStats(Names.TmpHP.value, text.toInt())
-                                    Names.MaxHP.exp -> setStats(Names.MaxHP.value, text.toInt())
-                                    Names.AC.exp -> setStats(Names.AC.value, text.toInt())
-                                    Names.HP.exp -> setStats(Names.HP.value, text.toInt())
+                                    Names.TakeDamage.value -> takeDamage(text.toInt())
+                                    Names.Heal.value -> addHP(Names.HP.value, text.toInt())
+                                    Names.TmpHP.value -> setStats(Names.TmpHP.value, text.toInt())
+                                    Names.MaxHP.value -> setStats(Names.MaxHP.value, text.toInt())
+                                    Names.AC.value -> setStats(Names.AC.value, text.toInt())
+                                    Names.HP.value -> setStats(Names.HP.value, text.toInt())
                                 }
                                 onClose()
-                            } else {
+                            }
+                            else
+                            {
                                 sendNotification(context, "Error", "Numbers only")
                                 onClose()
                             }
-                            })
-                        {
-                            Text("Enter")
-                        }
+                        })
+                    {
+                        Text("Enter")
                     }
                 }
-
             }
         }
+    }
     @Composable
     fun Spells(onClose: () -> Unit) {
         Dialog(
@@ -282,34 +292,34 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun MakeHealthLine(name1: String? = null, name2: String? = null){
         Row{
-            StableCounter(name1)
+            HealthCounter(name1)
             Spacer(modifier = Modifier.width(15.dp))
-            StableCounter(name2)
+            HealthCounter(name2)
         }
     }
 
     @Composable
-    fun StableCounter(name: String? = null) {
-        val context = LocalContext.current
+    fun HealthCounter(name: String? = null) {
         var isOverlayVisible by remember { mutableStateOf(false) }
         if (name != null) {
             if (isOverlayVisible) {
                 ChangerWindow(onClose = { isOverlayVisible = false }, name = name)
             } else
             {
-                val value = when (name){
-                    Names.HP.exp -> Stats.hp
-                    Names.TmpHP.exp -> Stats.tmphp
-                    else -> 0
+                var hp = false
+                var value = 0
+                when (name){
+                    Names.HP.value -> {value = Stats.hp.current; hp = true}
+                    Names.TmpHP.value -> value = Stats.tmphp.current
                 }
                 fun setCurrent(newValue: Int) {
                     when (name) {
-                        Names.HP.exp -> {
-                            Stats.hp = newValue
+                        Names.HP.value -> {
+                            Stats.hp.current = newValue
                             setValuebyUser(user, userDao, Names.HP.value, newValue)
                         }
-                        Names.TmpHP.exp -> {
-                            Stats.tmphp = newValue
+                        Names.TmpHP.value -> {
+                            Stats.tmphp.current = newValue
                             setValuebyUser(user, userDao, Names.TmpHP.value, newValue)
                         }
                     }
@@ -321,7 +331,9 @@ class MainActivity : ComponentActivity() {
                     ) {
                         Text(name)
                         Spacer(modifier = Modifier.width(buttonSpacer))
-                        Text(value.toString())
+
+                        Text(if(hp){"${value}/${(Stats.hp.maxvalue ?: 0)}"}
+                            else {value.toString()})
                     }
                     Row {
                         Button(
@@ -333,11 +345,11 @@ class MainActivity : ComponentActivity() {
                         Spacer(modifier = Modifier.width(actionbuttonSpacer))
                         Button(
                             onClick = {
-                                if(name == Names.HP.exp && (value < Stats.maxhp)
+                                if(name == Names.HP.value && (value < (Stats.hp.maxvalue ?: 0) )
                                 ){
                                     setCurrent(value + 1)
                                 }
-                                if (name == Names.TmpHP.exp)
+                                if (name == Names.TmpHP.value)
                                 {
                                     setCurrent(value + 1)
                                 }
@@ -348,65 +360,65 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
-            }}
+            }
+        }
     }
 
     @Composable
     fun SpellsCounter(modifier: Modifier = Modifier, name: String? = null) {
-        val context = LocalContext.current
         var isOverlayVisible by remember { mutableStateOf(false) }
-            val value = when (name){
-                "Level 1" -> Stats.level1
-                "Level 2" -> Stats.level2
-                "Level 3" -> Stats.level3
-                "Level 4" -> Stats.level4
-                "Level 5" -> Stats.level5
-                "Level 6" -> Stats.level6
-                "Level 7" -> Stats.level7
-                "Level 8" -> Stats.level8
-                "Level 9" -> Stats.level9
-                else -> 0
-            }
-       fun setCurrent(newValue: Int) {
+        var maxvalue = 0
+        var value = 0
+        when (name){
+            Levels.Level1.exp -> {value = Stats.level1.current; maxvalue = Stats.level1.maxvalue?:0}
+            Levels.Level2.exp -> {value = Stats.level2.current; maxvalue = Stats.level2.maxvalue?:0}
+            Levels.Level3.exp -> {value = Stats.level3.current; maxvalue = Stats.level3.maxvalue?:0}
+            Levels.Level4.exp -> {value = Stats.level4.current; maxvalue = Stats.level4.maxvalue?:0}
+            Levels.Level5.exp -> {value = Stats.level5.current; maxvalue = Stats.level5.maxvalue?:0}
+            Levels.Level6.exp -> {value = Stats.level6.current; maxvalue = Stats.level6.maxvalue?:0}
+            Levels.Level7.exp -> {value = Stats.level7.current; maxvalue = Stats.level7.maxvalue?:0}
+            Levels.Level8.exp -> {value = Stats.level8.current; maxvalue = Stats.level8.maxvalue?:0}
+            Levels.Level9.exp -> {value = Stats.level9.current; maxvalue = Stats.level9.maxvalue?:0}
+        }
+        fun setCurrent(newValue: Int) {
             when (name) {
-                "Level 1" -> {
-                    Stats.level1 = newValue
+                Levels.Level1.exp -> {
+                    Stats.level1.current = newValue
                     setValuebyUser(user, userDao, Levels.Level1.value, newValue)
                 }
-                "Level 2" -> {
-                    Stats.level2 = newValue
+                Levels.Level2.exp -> {
+                    Stats.level2.current = newValue
                     setValuebyUser(user, userDao, Levels.Level2.value, newValue)
                 }
-                "Level 3" -> {
-                    Stats.level3 = newValue
+                Levels.Level3.exp -> {
+                    Stats.level3.current = newValue
                     setValuebyUser(user, userDao, Levels.Level3.value, newValue)
                 }
-                "Level 4" -> {
-                    Stats.level4 = newValue
+                Levels.Level4.exp -> {
+                    Stats.level4.current = newValue
                     setValuebyUser(user, userDao, Levels.Level4.value, newValue)
                 }
-                "Level 5" -> {
-                    Stats.level5 = newValue
+                Levels.Level5.exp -> {
+                    Stats.level5.current = newValue
                     setValuebyUser(user, userDao, Levels.Level5.value, newValue)
                 }
-                "Level 6" -> {
-                    Stats.level6 = newValue
+                Levels.Level6.exp -> {
+                    Stats.level6.current = newValue
                     setValuebyUser(user, userDao, Levels.Level6.value, newValue)
                 }
-                "Level 7" -> {
-                    Stats.level7 = newValue
+                Levels.Level7.exp -> {
+                    Stats.level7.current = newValue
                     setValuebyUser(user, userDao, Levels.Level7.value, newValue)
                 }
-                "Level 8" -> {
-                    Stats.level8 = newValue
+                Levels.Level8.exp -> {
+                    Stats.level8.current = newValue
                     setValuebyUser(user, userDao, Levels.Level8.value, newValue)
                 }
-                "Level 9" -> {
-                    Stats.level9 = newValue
+                Levels.Level9.exp -> {
+                    Stats.level9.current = newValue
                     setValuebyUser(user, userDao, Levels.Level9.value, newValue)
                 }
             }
-
         }
         if (name != null){
             if (isOverlayVisible) {
@@ -420,7 +432,7 @@ class MainActivity : ComponentActivity() {
                     ) {
                         Text(name)
                         Spacer(modifier = Modifier.width(buttonSpacer))
-                        Text(value.toString())
+                        Text("${value}/${maxvalue}")
                     }
 
                     Row{
@@ -432,7 +444,7 @@ class MainActivity : ComponentActivity() {
                         }
                         Spacer(modifier = Modifier.width(actionbuttonSpacer))
                         Button(
-                            onClick = { setCurrent(value + 1) },
+                            onClick = {if (value < maxvalue) setCurrent(value + 1) },
                             modifier = Modifier.width(actionbuttonWidth)
                         ) {
                             Text("+")
@@ -445,7 +457,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun MakeSpellsline(name1: String? = null, name2: String? = null){
+    fun MakeSpellsLine(name1: String? = null, name2: String? = null){
         Row{
             SpellsCounter( modifier = Modifier,name1)
             Spacer(modifier = Modifier.width(buttonSpacer))
@@ -458,7 +470,7 @@ class MainActivity : ComponentActivity() {
     fun ShowStats(onClose: () -> Unit){
         var isOverlayVisible by remember { mutableStateOf(false) }
         if (isOverlayVisible) {
-            ChangerWindow(onClose = { isOverlayVisible = false }, name = Names.MaxHP.exp)
+            ChangerWindow(onClose = { isOverlayVisible = false }, name = Names.MaxHP.value)
         }
         else {
         Dialog(
@@ -474,31 +486,31 @@ class MainActivity : ComponentActivity() {
                 Column(verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally) 
                 {
-                    Text("Max HP: ${Stats.maxhp}")
+                    Text("${Names.MaxHP.value}: ${Stats.hp.maxvalue}")
 
                     Spacer(modifier = Modifier.height(buttonSpacer))
 
-                    Text("HP: ${Stats.hp}")
+                    Text("${Names.HP.value}: ${Stats.hp.current}")
 
                     Spacer(modifier = Modifier.height(buttonSpacer))
 
-                    Text("Tmp.HP: ${Stats.tmphp}")
+                    Text("${Names.TmpHP.value}: ${Stats.tmphp.current}")
 
                     Spacer(modifier = Modifier.height(buttonSpacer))
 
-                    Text("AC: ${Stats.ac}")
+                    Text("${Names.AC.value}: ${Stats.ac.current}")
 
                     Spacer(modifier = Modifier.height(buttonSpacer))
 
-                    MakeParametrsChangersLine(Names.MaxHP.exp, Names.HP.exp)
+                    MakeParametersChangersLine(Names.MaxHP.value, Names.AC.value)
 
                     Spacer(modifier = Modifier.height(buttonSpacer))
 
-                    MakeParametrsChangersLine(Names.AC.exp, Names.TmpHP.exp)
+                    MakeMaxSpellChanger("Levels value")
 
                     Spacer(modifier = Modifier.height(buttonSpacer))
 
-                    makeCloudLine()
+                    MakeCloudLine()
 
                     Spacer(modifier = Modifier.height(buttonSpacer))
 
@@ -511,7 +523,170 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun makeCloudLine(){
+    fun MakeMaxSpellChanger(name: String? = null) {
+        var isOverlayVisible by remember { mutableStateOf(false) }
+
+        if (name != null) {
+            Column {
+                Button(
+                    onClick = { isOverlayVisible = true },
+                    modifier = Modifier.width(buttonWidth)
+                ) {
+                    Text(name)
+                }
+            }
+        }
+
+        if (isOverlayVisible) {
+            MaxSpellListChanger(
+                onClose = { isOverlayVisible = false }
+            )
+        }
+    }
+
+    @Composable
+    fun MaxSpellListChanger(onClose: () -> Unit) {
+        Dialog(
+            onDismissRequest = onClose,
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                dismissOnBackPress = true,
+                dismissOnClickOutside = true
+            )
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Column(
+                    modifier = Modifier
+
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    MakeMaxSpellsLine(Levels.Level1.maxvalue, Levels.Level2.maxvalue)
+                    MakeMaxSpellsLine(Levels.Level3.maxvalue, Levels.Level4.maxvalue)
+                    MakeMaxSpellsLine(Levels.Level5.maxvalue, Levels.Level6.maxvalue)
+                    MakeMaxSpellsLine(Levels.Level7.maxvalue, Levels.Level8.maxvalue)
+                    MakeMaxSpellsLine(Levels.Level9.maxvalue)
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(onClick = onClose) {
+                        Text("Close")
+                    }
+                }
+            }
+        }
+    }
+    @Composable
+    fun MakeMaxSpellsLine(name1: String? = null, name2: String? = null){
+        Row{
+            MaxSpellChanger( modifier = Modifier,name1)
+            Spacer(modifier = Modifier.width(buttonSpacer))
+            MaxSpellChanger(modifier = Modifier, name2)
+        }
+        Spacer(modifier = Modifier.height(buttonSpacer))
+    }
+    @Composable
+    fun MaxSpellChanger(modifier: Modifier = Modifier, name:String? = null){
+        var isOverlayVisible by remember { mutableStateOf(false) }
+        var maxvalue = 0
+        var level = Levels.Level1
+        when (name){
+            Levels.Level1.maxvalue -> {maxvalue = Stats.level1.maxvalue?:0; level = Levels.Level1}
+            Levels.Level2.maxvalue -> {maxvalue = Stats.level2.maxvalue?:0; level = Levels.Level2}
+            Levels.Level3.maxvalue -> {maxvalue = Stats.level3.maxvalue?:0; level = Levels.Level3}
+            Levels.Level4.maxvalue -> {maxvalue = Stats.level4.maxvalue?:0; level = Levels.Level4}
+            Levels.Level5.maxvalue -> {maxvalue = Stats.level5.maxvalue?:0; level = Levels.Level5}
+            Levels.Level6.maxvalue -> {maxvalue = Stats.level6.maxvalue?:0; level = Levels.Level6}
+            Levels.Level7.maxvalue -> {maxvalue = Stats.level7.maxvalue?:0; level = Levels.Level7}
+            Levels.Level8.maxvalue -> {maxvalue = Stats.level8.maxvalue?:0; level = Levels.Level8}
+            Levels.Level9.maxvalue -> {maxvalue = Stats.level9.maxvalue?:0; level = Levels.Level9}
+        }
+        fun setCurrent(newValue: Int) {
+            when (name) {
+                Levels.Level1.maxvalue -> {
+                    Stats.level1.maxvalue = newValue
+                    setValuebyUser(user, userDao, Levels.Level1.maxvalue, newValue)
+                }
+                Levels.Level2.maxvalue-> {
+                    Stats.level2.maxvalue = newValue
+                    setValuebyUser(user, userDao, Levels.Level2.maxvalue, newValue)
+                }
+                Levels.Level3.maxvalue -> {
+                    Stats.level3.maxvalue = newValue
+                    setValuebyUser(user, userDao, Levels.Level3.maxvalue, newValue)
+                }
+                Levels.Level4.maxvalue -> {
+                    Stats.level4.maxvalue = newValue
+                    setValuebyUser(user, userDao, Levels.Level4.maxvalue, newValue)
+                }
+                Levels.Level5.maxvalue -> {
+                    Stats.level5.maxvalue = newValue
+                    setValuebyUser(user, userDao, Levels.Level5.maxvalue, newValue)
+                }
+                Levels.Level6.maxvalue -> {
+                    Stats.level6.maxvalue = newValue
+                    setValuebyUser(user, userDao, Levels.Level6.maxvalue, newValue)
+                }
+                Levels.Level7.maxvalue -> {
+                    Stats.level7.maxvalue = newValue
+                    setValuebyUser(user, userDao, Levels.Level7.maxvalue, newValue)
+                }
+                Levels.Level8.maxvalue -> {
+                    Stats.level8.maxvalue = newValue
+                    setValuebyUser(user, userDao, Levels.Level8.maxvalue, newValue)
+                }
+                Levels.Level9.maxvalue -> {
+                    Stats.level9.maxvalue = newValue
+                    setValuebyUser(user, userDao, Levels.Level9.maxvalue, newValue)
+                }
+            }
+
+        }
+        if (name != null){
+            if (isOverlayVisible) {
+                Spells (onClose = { isOverlayVisible = false })
+            } else
+            {
+                Column{
+                    Button(
+                        onClick = { isOverlayVisible = true },
+                        modifier = Modifier.width(buttonWidth)
+                    ) {
+                        Text(level.exp)
+                        Spacer(modifier = Modifier.width(buttonSpacer))
+                        Text(maxvalue.toString())
+                    }
+
+                    Row{
+                        Button(
+                            onClick = { if (maxvalue > 0) setCurrent(maxvalue - 1) },
+                            modifier = modifier.width(actionbuttonWidth)
+                        ) {
+                            Text("-")
+                        }
+                        Spacer(modifier = Modifier.width(actionbuttonSpacer))
+                        Button(
+                            onClick = {setCurrent(maxvalue + 1) },
+                            modifier = Modifier.width(actionbuttonWidth)
+                        ) {
+                            Text("+")
+                        }
+
+                    }
+                }
+            }
+        }
+
+
+        }
+
+    @Composable
+    fun MakeCloudLine(){
         Row{
             Button(
                 onClick = {cloudSave(this@MainActivity)},
@@ -521,7 +696,9 @@ class MainActivity : ComponentActivity() {
             }
             Spacer(modifier = Modifier.width(15.dp))
 
-            Button( onClick={cloudLoad(this@MainActivity)},
+            Button( onClick={
+                cloudLoad(this@MainActivity){
+                saveAllLoadedDataToRoom()}},
                 modifier = Modifier.width(buttonWidth)
             ) {
                 Text("Cloud load")
@@ -529,52 +706,80 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    fun saveAllLoadedDataToRoom() {
+        user.HP = Stats.hp.current
+        user.MaxHP = Stats.hp.maxvalue ?: 0
+        user.TmpHP = Stats.tmphp.current
+        user.AC = Stats.ac.current
+
+        user.Level1 = Stats.level1.current
+        user.Level2 = Stats.level2.current
+        user.Level3 = Stats.level3.current
+        user.Level4 = Stats.level4.current
+        user.Level5 = Stats.level5.current
+        user.Level6 = Stats.level6.current
+        user.Level7 = Stats.level7.current
+        user.Level8 = Stats.level8.current
+        user.Level9 = Stats.level9.current
+
+        user.MaxLevel1 = Stats.level1.maxvalue ?: 0
+        user.MaxLevel2 = Stats.level2.maxvalue ?: 0
+        user.MaxLevel3 = Stats.level3.maxvalue ?: 0
+        user.MaxLevel4 = Stats.level4.maxvalue ?: 0
+        user.MaxLevel5 = Stats.level5.maxvalue ?: 0
+        user.MaxLevel6 = Stats.level6.maxvalue ?: 0
+        user.MaxLevel7 = Stats.level7.maxvalue ?: 0
+        user.MaxLevel8 = Stats.level8.maxvalue ?: 0
+        user.MaxLevel9 = Stats.level9.maxvalue ?: 0
+
+        userDao.updateUsers(user)
+    }
 
     fun setStats(name: String, value: Int){
         when(name){
             Names.MaxHP.value -> {
-                Stats.maxhp = value
+                Stats.hp.maxvalue = value
                 setValuebyUser(user, userDao, Names.MaxHP.value, value)
             }
             Names.AC.value -> {
-                Stats.ac = value
+                Stats.ac.current = value
                 setValuebyUser(user, userDao, Names.AC.value, value)
             }
             Names.HP.value -> {
-                if (value < Stats.maxhp) {
-                    Stats.hp = value
+                if (value < (Stats.hp.maxvalue ?: 0)) {
+                    Stats.hp.current = value
                     setValuebyUser(user, userDao, Names.HP.value, value)
                 } else {
-                    Stats.hp = Stats.maxhp
-                    setValuebyUser(user, userDao, Names.HP.value, Stats.maxhp)
+                    Stats.hp.current = Stats.hp.maxvalue?:0
+                    setValuebyUser(user, userDao, Names.HP.value, Stats.hp.maxvalue?:0)
                 }
             }
             Names.TmpHP.value -> {
-                    Stats.tmphp = value
+                    Stats.tmphp.current = value
                     setValuebyUser(user, userDao, Names.TmpHP.value, value)
             }
             else -> return
         }
 
     }
-    fun takeDamage(value: Int){
-        val damage = value
-        val tmp = Stats.tmphp //?: 0
-        val hp = Stats.hp
 
-        if (tmp >= damage) {
-            Stats.tmphp = tmp - damage
+    fun takeDamage(value: Int){
+        val tmp = Stats.tmphp.current
+        val hp = Stats.hp.current
+
+        if (tmp >= value) {
+            Stats.tmphp.current = tmp - value
         }
         else{
-            val leftover = damage - tmp
-            Stats.tmphp = 0
-            Stats.hp = hp - leftover.coerceAtLeast(0)
+            val leftover = value - tmp
+            Stats.tmphp.current = 0
+            Stats.hp.current = hp - leftover.coerceAtLeast(0)
         }
-        if (Stats.hp < 0){
-            Stats.hp = 0
+        if (Stats.hp.current < 0){
+            Stats.hp.current = 0
         }
-        setValuebyUser(user, userDao, Names.TmpHP.value, Stats.tmphp)
-        setValuebyUser(user, userDao, Names.HP.value, Stats.hp)
+        setValuebyUser(user, userDao, Names.TmpHP.value, Stats.tmphp.current)
+        setValuebyUser(user, userDao, Names.HP.value, Stats.hp.current)
     }
 
     fun addHP( name: String, value: Int) {
@@ -582,23 +787,23 @@ class MainActivity : ComponentActivity() {
         {
             when (name){
                 Names.HP.value ->{
-                    Stats.hp += value
-                    setValuebyUser(user, userDao, Names.HP.value, Stats.hp)
+                    Stats.hp.current += value
+                    setValuebyUser(user, userDao, Names.HP.value, Stats.hp.current)
                 }
                 Names.TmpHP.value -> {
-                    Stats.tmphp += value
-                    setValuebyUser(user, userDao, Names.TmpHP.value, Stats.tmphp)
+                    Stats.tmphp.current += value
+                    setValuebyUser(user, userDao, Names.TmpHP.value, Stats.tmphp.current)
                 }
             }
 
         }
-        if(Stats.hp > Stats.maxhp){
-            Stats.hp = Stats.maxhp
-            setValuebyUser(user, userDao, Names.HP.value, Stats.hp)
+        if(Stats.hp.current > (Stats.hp.maxvalue ?: 0)){
+            Stats.hp.current = Stats.hp.maxvalue?:0
+            setValuebyUser(user, userDao, Names.HP.value, Stats.hp.current)
         }
     }
 
-    // Siders
+    // Image + Notification
 
     @Composable
     fun GreetingImage() {
@@ -631,21 +836,17 @@ class MainActivity : ComponentActivity() {
 
         val notificationManager = context.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
-        // Створюємо канал для нових версій Android
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
                 "Game Events",
                 NotificationManager.IMPORTANCE_DEFAULT
-            ).apply {
-                description = "Сповіщення про події в грі"
-            }
+            )
             notificationManager.createNotificationChannel(channel)
         }
 
-        // Будуємо сповіщення
         val builder = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.frog) // Можна замінити на свій frog icon
+            .setSmallIcon(R.drawable.frog)
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
