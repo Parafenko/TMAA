@@ -42,21 +42,42 @@ import androidx.compose.foundation.clickable
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.graphics.drawable.Icon
 import android.os.Build
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.RoundedCornerShape
+//import androidx.compose.material.icons.Icons
+//import androidx.compose.material.icons.filled.Add
+//import androidx.compose.material.icons.filled.Favorite
+//import androidx.compose.material.icons.filled.MoreVert
+//import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.core.app.NotificationCompat
 import androidx.room.Room
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MenuDefaults
 
 class MainActivity : ComponentActivity() {
 
     val buttonWidth = 150.dp
     val actionbuttonWidth = 60.dp
-    val actionbuttonSpacer = 30.dp
-    val buttonSpacer = 15.dp
+    val actionbuttonSpacer = 35.dp
+    val buttonSpacer = 5.dp
     val blocksSeparator = 25.dp
+    val addersseparator = 15.dp
 
     lateinit var userDao: UserDao
     lateinit var user: User
+    lateinit var spellDao: SpellDao
+    var spells = mutableStateListOf<Spells>()
+
 
     enum class Names(val value: String){
         HP("HP"),
@@ -106,10 +127,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val db = Room.databaseBuilder(
             applicationContext,
-            AppDatabase::class.java, "database-name"
-        ).allowMainThreadQueries().build()
+            AppDatabase::class.java,
+            "database-name"
+        )
+            .allowMainThreadQueries()
+            .build()
 
         userDao = db.userDao()
+        spellDao = db.spellsDao()
         val users = userDao.getAll()
 
         if (users.isEmpty()) {
@@ -121,11 +146,16 @@ class MainActivity : ComponentActivity() {
                     Level7 = 0, Level8 = 0, Level9 = 0,
                     MaxLevel1 = 10, MaxLevel2 = 10, MaxLevel3 = 10,
                     MaxLevel4 = 10, MaxLevel5 = 10, MaxLevel6 = 10,
-                    MaxLevel7 = 10, MaxLevel8 = 10, MaxLevel9 = 10
-                ))
+                    MaxLevel7 = 10, MaxLevel8 = 10, MaxLevel9 = 10,
+                )
+            )
+
             userDao.insert(initialUsers)
         }
+        spells.clear()
+        spells.addAll(spellDao.getAll())
         user = userDao.getUser()
+
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {
@@ -177,6 +207,7 @@ class MainActivity : ComponentActivity() {
                             verticalArrangement = Arrangement.Center,
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
+
                             MakeHealthLine(Names.HP.value, Names.TmpHP.value)
                             Spacer(modifier = Modifier.height(blocksSeparator))
                             MakeParametersChangersLine(Names.Heal.value, Names.TmpHP.value)
@@ -197,6 +228,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
     @Composable
     fun MakeParametersChangersLine(name1: String? = null, name2: String? = null){
         Row{
@@ -251,12 +283,12 @@ class MainActivity : ComponentActivity() {
                         onClick ={if (text.isDigitsOnly() && text.isNotEmpty())
                             {
                                 when (name) {
-                                    Names.TakeDamage.value -> takeDamage(text.toInt())
-                                    Names.Heal.value -> addHP(Names.HP.value, text.toInt())
-                                    Names.TmpHP.value -> setStats(Names.TmpHP.value, text.toInt())
-                                    Names.MaxHP.value -> setStats(Names.MaxHP.value, text.toInt())
-                                    Names.AC.value -> setStats(Names.AC.value, text.toInt())
-                                    Names.HP.value -> setStats(Names.HP.value, text.toInt())
+                                    Names.TakeDamage.value -> takeDamage(text.trim().toInt())
+                                    Names.Heal.value -> addHP(Names.HP.value, text.trim().toInt())
+                                    Names.TmpHP.value -> setStats(Names.TmpHP.value, text.trim().toInt())
+                                    Names.MaxHP.value -> setStats(Names.MaxHP.value, text.trim().toInt())
+                                    Names.AC.value -> setStats(Names.AC.value, text.trim().toInt())
+                                    Names.HP.value -> setStats(Names.HP.value, text.trim().toInt())
                                 }
                                 onClose()
                             }
@@ -273,8 +305,121 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
     @Composable
-    fun Spells(onClose: () -> Unit) {
+    fun AddSpell(onClose: () -> Unit, level: Int){
+        Dialog(
+            onDismissRequest = onClose,
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false))
+        {
+            Surface(
+                modifier = Modifier.fillMaxSize())
+            {
+                var name by rememberSaveable { mutableStateOf("") }
+                var level by rememberSaveable { mutableStateOf("") }
+                var description by rememberSaveable { mutableStateOf("") }
+                var components by rememberSaveable { mutableStateOf("") }
+                var duration  by rememberSaveable { mutableStateOf("") }
+                var casttime by rememberSaveable { mutableStateOf("") }
+                var distance by rememberSaveable { mutableStateOf("") }
+                Column(
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                )
+                {
+                    Column{
+                        TextField(
+                            value = name,
+                            onValueChange = { name = it },
+                            singleLine = false,
+                            modifier = Modifier.width(300.dp),
+                            placeholder = { Text("Name") }
+                        )   //name
+                        Spacer(modifier = Modifier.height(addersseparator))
+                        TextField(
+                            value = level ,
+                            onValueChange = {level = it},
+                            singleLine = false,
+                            modifier = Modifier.width(300.dp),
+                            placeholder = {Text("Level (number)")}
+                        )   //level
+                        Spacer(modifier = Modifier.height(addersseparator))
+                        TextField(
+                            value = description ,
+                            onValueChange = {description = it},
+                            singleLine = false,
+                            modifier = Modifier.height(140.dp).width(300.dp),
+                            placeholder = {Text("Description")}
+                        )   //description
+                        Spacer(modifier = Modifier.height(addersseparator))
+                        TextField(
+                            value = components ,
+                            onValueChange = {components = it},
+                            singleLine = false,
+                            modifier = Modifier.width(300.dp),
+                            placeholder = {Text("Components")}
+                        )   //components
+                        Spacer(modifier = Modifier.height(addersseparator))
+                        TextField(
+                            value = duration,
+                            onValueChange = {duration = it},
+                            singleLine = false,
+                            modifier = Modifier.width(300.dp),
+                            placeholder = {Text("Duration (number)")}
+                        )   //duration
+                        Spacer(modifier = Modifier.height(addersseparator))
+                        TextField(
+                            value = casttime,
+                            onValueChange = {casttime = it},
+                            singleLine = false,
+                            modifier = Modifier.width(300.dp),
+                            placeholder = {Text("Time to cast (number)")}
+                        )   //time
+                        Spacer(modifier = Modifier.height(addersseparator))
+                        TextField(
+                            value = distance,
+                            onValueChange = {distance = it},
+                            singleLine = false,
+                            modifier = Modifier.width(300.dp),
+                            placeholder = {Text("Distance (number)")}
+                        )   //distance
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Button(
+                        onClick =
+                        {
+                            if (name.isNotBlank()) {
+                                spellDao.insert(
+                                    Spells(
+                                        name = name.trim(),
+                                        level = level.trim().toInt(),
+                                        description = description.trim(),
+                                        components = components.trim(),
+                                        duration = duration.trim().toInt(),
+                                        casttime = casttime.trim().toInt(),
+                                        distance = distance.trim().toInt()
+                                    )
+                                )
+                                spells.clear()
+                                spells.addAll(spellDao.getAll())
+                            }
+                            onClose()
+                        }
+                    )
+                {
+                    Text("Enter")
+                }
+            }}
+        }
+    }
+
+    @Composable
+    fun SpellsDialog(onClose: () -> Unit, level: Int) {
+        var isOverlayVisible by remember { mutableStateOf(false) }
+        val leveledSpells: List<Spells> = getSpellsbyLevel(level)
         Dialog(
             onDismissRequest = onClose,
             properties = DialogProperties(
@@ -284,10 +429,43 @@ class MainActivity : ComponentActivity() {
             Surface(
                 modifier = Modifier.fillMaxSize(),
             ) {
-                Text("Not ready")
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                )
+                {
+
+                leveledSpells.forEach({ spell ->
+                    Text("${spell.uid}, ${spell.name}, ${spell.level}")
+                })
+                Spacer(modifier = Modifier.height(blocksSeparator))
+                Button(
+                    onClick = { isOverlayVisible = true },
+                    modifier = Modifier.width(buttonWidth)
+                ) {
+                    Text("Add")
+                }
+                if (isOverlayVisible) {
+                    AddSpell(onClose = { isOverlayVisible = false }, level)
+                }
+                }
             }
         }
     }
+
+
+
+    fun getSpellsbyLevel(level: Int):List<Spells>{
+        var newlist = mutableListOf<Spells>()
+        spells.forEach({
+            if (it.level == level) {
+                newlist.add(it)
+            }
+        })
+        return newlist
+    }
+
 
     @Composable
     fun MakeHealthLine(name1: String? = null, name2: String? = null){
@@ -329,7 +507,9 @@ class MainActivity : ComponentActivity() {
                         onClick = {},
                         modifier = Modifier.width(buttonWidth)
                     ) {
+
                         Text(name)
+
                         Spacer(modifier = Modifier.width(buttonSpacer))
 
                         Text(if(hp){"${value}/${(Stats.hp.maxvalue ?: 0)}"}
@@ -369,16 +549,17 @@ class MainActivity : ComponentActivity() {
         var isOverlayVisible by remember { mutableStateOf(false) }
         var maxvalue = 0
         var value = 0
+        var openedLevel =0
         when (name){
-            Levels.Level1.exp -> {value = Stats.level1.current; maxvalue = Stats.level1.maxvalue?:0}
-            Levels.Level2.exp -> {value = Stats.level2.current; maxvalue = Stats.level2.maxvalue?:0}
-            Levels.Level3.exp -> {value = Stats.level3.current; maxvalue = Stats.level3.maxvalue?:0}
-            Levels.Level4.exp -> {value = Stats.level4.current; maxvalue = Stats.level4.maxvalue?:0}
-            Levels.Level5.exp -> {value = Stats.level5.current; maxvalue = Stats.level5.maxvalue?:0}
-            Levels.Level6.exp -> {value = Stats.level6.current; maxvalue = Stats.level6.maxvalue?:0}
-            Levels.Level7.exp -> {value = Stats.level7.current; maxvalue = Stats.level7.maxvalue?:0}
-            Levels.Level8.exp -> {value = Stats.level8.current; maxvalue = Stats.level8.maxvalue?:0}
-            Levels.Level9.exp -> {value = Stats.level9.current; maxvalue = Stats.level9.maxvalue?:0}
+            Levels.Level1.exp -> {value = Stats.level1.current; maxvalue = Stats.level1.maxvalue?:0; openedLevel = 1}
+            Levels.Level2.exp -> {value = Stats.level2.current; maxvalue = Stats.level2.maxvalue?:0; openedLevel = 2}
+            Levels.Level3.exp -> {value = Stats.level3.current; maxvalue = Stats.level3.maxvalue?:0; openedLevel = 3}
+            Levels.Level4.exp -> {value = Stats.level4.current; maxvalue = Stats.level4.maxvalue?:0; openedLevel = 4}
+            Levels.Level5.exp -> {value = Stats.level5.current; maxvalue = Stats.level5.maxvalue?:0; openedLevel = 5}
+            Levels.Level6.exp -> {value = Stats.level6.current; maxvalue = Stats.level6.maxvalue?:0; openedLevel = 6}
+            Levels.Level7.exp -> {value = Stats.level7.current; maxvalue = Stats.level7.maxvalue?:0; openedLevel = 7}
+            Levels.Level8.exp -> {value = Stats.level8.current; maxvalue = Stats.level8.maxvalue?:0; openedLevel = 8}
+            Levels.Level9.exp -> {value = Stats.level9.current; maxvalue = Stats.level9.maxvalue?:0; openedLevel = 9}
         }
         fun setCurrent(newValue: Int) {
             when (name) {
@@ -422,7 +603,7 @@ class MainActivity : ComponentActivity() {
         }
         if (name != null){
             if (isOverlayVisible) {
-                Spells (onClose = { isOverlayVisible = false })
+                SpellsDialog (onClose = { isOverlayVisible = false }, level = openedLevel)
             } else
             {
                 Column{
@@ -649,7 +830,7 @@ class MainActivity : ComponentActivity() {
         }
         if (name != null){
             if (isOverlayVisible) {
-                Spells (onClose = { isOverlayVisible = false })
+                //Spells (onClose = { isOverlayVisible = false })
             } else
             {
                 Column{
@@ -822,7 +1003,7 @@ class MainActivity : ComponentActivity() {
                 .width(200.dp)
                 .height(400.dp)
                 .padding(bottom = 20.dp)
-                .clickable 
+                .clickable
                 {
                     isOverlayVisible = true
                 }

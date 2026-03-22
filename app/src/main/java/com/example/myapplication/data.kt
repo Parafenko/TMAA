@@ -18,7 +18,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 data class User(
     @PrimaryKey(autoGenerate = true) var uid: Int = 0,
     @ColumnInfo(name = "HP")     var HP    : Int,
-    @ColumnInfo(name = "Tmp.HP") var TmpHP : Int,
+    @ColumnInfo(name = "TmpHP") var TmpHP : Int,
     @ColumnInfo(name = "MaxHP")  var MaxHP : Int,
     @ColumnInfo(name = "AC")     var AC    : Int,
     @ColumnInfo(name = "Level1") var Level1: Int,
@@ -43,6 +43,35 @@ data class User(
 
 )
 
+@Entity (tableName = "spells")
+data class Spells(
+    @PrimaryKey (autoGenerate = true) var uid: Int = 0,
+    @ColumnInfo(name = "name") var name: String,
+    @ColumnInfo(name = "level") var level: Int,
+    @ColumnInfo(name = "description") var description: String,
+    @ColumnInfo(name = "Components") var components: String,
+    @ColumnInfo(name = "duration") var duration: Int,
+    @ColumnInfo(name = "cast_time") var casttime: Int,
+    @ColumnInfo(name = "distance") var distance: Int
+
+)
+
+@Dao
+interface SpellDao {
+    @Query("SELECT * FROM spells")
+    fun getAll(): List<Spells>
+
+    @Insert
+    fun insert(spell: Spells)
+
+    @Delete
+    fun delete(spell: Spells)
+
+    @Update
+    fun update(spell: Spells)
+}
+
+
 @Dao
 interface UserDao {
     @Query("SELECT * FROM user")
@@ -62,6 +91,8 @@ interface UserDao {
 
     @Query("SELECT * FROM user LIMIT 1 ")
     fun getUser(): User
+
+
 }
 
 fun getValuebyUser(user: User, name: String): Int {
@@ -127,9 +158,12 @@ fun setValuebyUser(user: User,userDao: UserDao, name: String, value: Int){
     userDao.updateUsers(user)
 
 }
-@Database(entities = [com.example.myapplication.User::class], version = 1)
+
+
+@Database(entities = [User::class, Spells::class], version = 1)
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun userDao(): com.example.myapplication.UserDao
+    abstract fun userDao(): UserDao
+    abstract fun spellsDao(): SpellDao
 }
 
 
@@ -168,6 +202,7 @@ fun cloudSave(context: Context) {
         "MaxLevel7" to Stats.level7.maxvalue,
         "MaxLevel8" to Stats.level8.maxvalue,
         "MaxLevel9" to Stats.level9.maxvalue
+
     )
 
     FirebaseFirestore.getInstance()
