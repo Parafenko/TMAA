@@ -51,7 +51,7 @@ data class Spells(
     @ColumnInfo(name = "description") var description: String,
     @ColumnInfo(name = "Components") var components: String,
     @ColumnInfo(name = "duration") var duration: Int,
-    @ColumnInfo(name = "cast_time") var casttime: Int,
+    @ColumnInfo(name = "cast_time") var casttime: String,
     @ColumnInfo(name = "distance") var distance: Int
 
 )
@@ -222,36 +222,38 @@ fun cloudLoad(context: Context, onLoaded: () -> Unit) {
         .get()
         .addOnSuccessListener { document ->
             if (document.exists()) {
-                Stats.hp.current = (document.getLong("HP") ?: 0).toInt()
-                Stats.hp.maxvalue = (document.getLong("Max.HP") ?: 0).toInt()
+                Stats.hp.current = document.getLong("HP")?.toInt() ?: Stats.hp.current
+                Stats.hp.maxvalue = document.getLong("Max.HP")?.toInt() ?: Stats.hp.maxvalue
 
-                Stats.tmphp.current = (document.getLong("Tmp.HP") ?: 0).toInt()
-                Stats.ac.current = (document.getLong("AC") ?: 0).toInt()
+                Stats.tmphp.current = document.getLong("Tmp.HP")?.toInt() ?: Stats.tmphp.current
+                Stats.ac.current = document.getLong("AC")?.toInt() ?: Stats.ac.current
 
-                Stats.level1.current = (document.getLong("Level1") ?: 0).toInt()
-                Stats.level2.current = (document.getLong("Level2") ?: 0).toInt()
-                Stats.level3.current = (document.getLong("Level3") ?: 0).toInt()
-                Stats.level4.current = (document.getLong("Level4") ?: 0).toInt()
-                Stats.level5.current = (document.getLong("Level5") ?: 0).toInt()
-                Stats.level6.current = (document.getLong("Level6") ?: 0).toInt()
-                Stats.level7.current = (document.getLong("Level7") ?: 0).toInt()
-                Stats.level8.current = (document.getLong("Level8") ?: 0).toInt()
-                Stats.level9.current = (document.getLong("Level9") ?: 0).toInt()
+                Stats.level1.current = document.getLong("Level1")?.toInt() ?: Stats.level1.current
+                Stats.level2.current = document.getLong("Level2")?.toInt() ?: Stats.level2.current
+                Stats.level3.current = document.getLong("Level3")?.toInt() ?: Stats.level3.current
+                Stats.level4.current = document.getLong("Level4")?.toInt() ?: Stats.level4.current
+                Stats.level5.current = document.getLong("Level5")?.toInt() ?: Stats.level5.current
+                Stats.level6.current = document.getLong("Level6")?.toInt() ?: Stats.level6.current
+                Stats.level7.current = document.getLong("Level7")?.toInt() ?: Stats.level7.current
+                Stats.level8.current = document.getLong("Level8")?.toInt() ?: Stats.level8.current
+                Stats.level9.current = document.getLong("Level9")?.toInt() ?: Stats.level9.current
 
-                Stats.level1.maxvalue = (document.getLong("MaxLevel1") ?: 0).toInt()
-                Stats.level2.maxvalue = (document.getLong("MaxLevel2") ?: 0).toInt()
-                Stats.level3.maxvalue = (document.getLong("MaxLevel3") ?: 0).toInt()
-                Stats.level4.maxvalue = (document.getLong("MaxLevel4") ?: 0).toInt()
-                Stats.level5.maxvalue = (document.getLong("MaxLevel5") ?: 0).toInt()
-                Stats.level6.maxvalue = (document.getLong("MaxLevel6") ?: 0).toInt()
-                Stats.level7.maxvalue = (document.getLong("MaxLevel7") ?: 0).toInt()
-                Stats.level8.maxvalue = (document.getLong("MaxLevel8") ?: 0).toInt()
-                Stats.level9.maxvalue = (document.getLong("MaxLevel9") ?: 0).toInt()
+                Stats.level1.maxvalue = document.getLong("MaxLevel1")?.toInt() ?: Stats.level1.maxvalue
+                Stats.level2.maxvalue = document.getLong("MaxLevel2")?.toInt() ?: Stats.level2.maxvalue
+                Stats.level3.maxvalue = document.getLong("MaxLevel3")?.toInt() ?: Stats.level3.maxvalue
+                Stats.level4.maxvalue = document.getLong("MaxLevel4")?.toInt() ?: Stats.level4.maxvalue
+                Stats.level5.maxvalue = document.getLong("MaxLevel5")?.toInt() ?: Stats.level5.maxvalue
+                Stats.level6.maxvalue = document.getLong("MaxLevel6")?.toInt() ?: Stats.level6.maxvalue
+                Stats.level7.maxvalue = document.getLong("MaxLevel7")?.toInt() ?: Stats.level7.maxvalue
+                Stats.level8.maxvalue = document.getLong("MaxLevel8")?.toInt() ?: Stats.level8.maxvalue
+                Stats.level9.maxvalue = document.getLong("MaxLevel9")?.toInt() ?: Stats.level9.maxvalue
 
                 onLoaded()
             }
         }
     }
+
+
 
 
 
