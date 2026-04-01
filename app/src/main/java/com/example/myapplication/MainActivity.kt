@@ -39,6 +39,8 @@ import androidx.room.Room
 
 
 
+// some modification 2
+class MainActivity : ComponentActivity() {
 
 val buttonWidth = 150.dp
 val actionbuttonWidth = 60.dp
