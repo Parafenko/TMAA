@@ -1,4 +1,9 @@
-package com.example.myapplication
+package com.example.myapplication.feature.character
+
+import com.example.myapplication.*
+import com.example.myapplication.feature.spells.*
+import com.example.myapplication.core.db.*
+import com.example.myapplication.core.cloud.*
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -96,6 +101,13 @@ fun MainScreen(viewModel: GameViewModel) {
                 MakeSpellsLine(name1 = Levels.Level5.exp, name2 = Levels.Level6.exp, onvaluesetter = viewModel::valuesetter, getSpellsbyLevel = viewModel::getSpellsbyLevel, spellAdder = viewModel::spellAdder)
                 MakeSpellsLine(name1 = Levels.Level7.exp, name2 = Levels.Level8.exp, onvaluesetter = viewModel::valuesetter, getSpellsbyLevel = viewModel::getSpellsbyLevel, spellAdder = viewModel::spellAdder)
                 MakeSpellsLine(name1 = Levels.Level9.exp, name2 = null,              onvaluesetter = viewModel::valuesetter, getSpellsbyLevel = viewModel::getSpellsbyLevel, spellAdder = viewModel::spellAdder)
+                
+                Spacer(modifier = Modifier.height(blocksSeparator))
+                val context = androidx.compose.ui.platform.LocalContext.current
+                androidx.compose.material3.Button(onClick = { viewModel.fetchRandomTip(context) }) {
+                    Text("Fetch API Joke")
+                }
+                Spacer(modifier = Modifier.height(blocksSeparator))
             }
         }
     }

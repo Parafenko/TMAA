@@ -1,4 +1,9 @@
-package com.example.myapplication
+package com.example.myapplication.feature.character
+
+import com.example.myapplication.*
+import com.example.myapplication.feature.spells.*
+import com.example.myapplication.core.db.*
+import com.example.myapplication.core.cloud.*
 
 import android.content.Context
 import androidx.compose.foundation.Image

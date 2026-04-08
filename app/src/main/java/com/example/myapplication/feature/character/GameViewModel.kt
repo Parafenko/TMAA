@@ -1,4 +1,9 @@
-package com.example.myapplication
+package com.example.myapplication.feature.character
+
+import com.example.myapplication.*
+import com.example.myapplication.feature.spells.*
+import com.example.myapplication.core.db.*
+import com.example.myapplication.core.cloud.*
 
 import android.app.Application
 import android.app.NotificationChannel
@@ -198,5 +203,35 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 .setAutoCancel(true)
                 .build()
         )
+    }
+    fun fetchRandomTip(context: Context) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val url = java.net.URL("https://official-joke-api.appspot.com/random_joke")
+                val connection = url.openConnection() as java.net.HttpURLConnection
+                connection.requestMethod = "GET"
+                connection.connect()
+
+                if (connection.responseCode == java.net.HttpURLConnection.HTTP_OK) {
+                    val stream = connection.inputStream
+                    val reader = java.io.BufferedReader(java.io.InputStreamReader(stream))
+                    val result = reader.readText()
+                    reader.close()
+
+                    val json = org.json.JSONObject(result)
+                    val setup = json.optString("setup", "What did the API say?")
+                    val punchline = json.optString("punchline", "200 OK")
+
+                    withContext(Dispatchers.Main) {
+                        sendNotification(context, "API Joke", "$setup - $punchline")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("GameViewModel", "fetchRandomTip failed", e)
+                withContext(Dispatchers.Main) {
+                    sendNotification(context, "API Error", e.localizedMessage ?: "Failed")
+                }
+            }
+        }
     }
 }

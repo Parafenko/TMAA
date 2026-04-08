@@ -1,5 +1,10 @@
 package com.example.myapplication
 
+import com.example.myapplication.feature.character.*
+import com.example.myapplication.core.db.*
+import com.example.myapplication.core.cloud.*
+import com.example.myapplication.feature.spells.*
+
 import android.Manifest
 import android.os.Build
 import android.os.Bundle
