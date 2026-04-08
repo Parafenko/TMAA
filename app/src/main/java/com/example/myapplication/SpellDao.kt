@@ -20,4 +20,3 @@ interface SpellDao {
     @Update
     suspend fun update(spell: Spells)
 }
-

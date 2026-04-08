@@ -11,8 +11,8 @@ interface UserDao {
     @Query("SELECT * FROM user")
     suspend fun getAll(): List<User>
 
-    @Query("SELECT * FROM user WHERE uid IN (:userIds)")
-    suspend fun loadAllByIds(userIds: IntArray): List<User>
+    @Query("SELECT * FROM user LIMIT 1")
+    suspend fun getUser(): User
 
     @Insert
     suspend fun insert(user: User)
@@ -22,9 +22,4 @@ interface UserDao {
 
     @Update
     suspend fun updateUsers(user: User)
-
-    @Query("SELECT * FROM user LIMIT 1 ")
-    suspend fun getUser(): User
-
-
 }

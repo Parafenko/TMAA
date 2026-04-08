@@ -6,22 +6,28 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Context.NOTIFICATION_SERVICE
 import android.os.Build
+import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class GameViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val db = AppDatabase.getDatabase(application)
-    private val userDao = db.userDao()
+    private val db       = AppDatabase.getDatabase(application)
+    private val userDao  = db.userDao()
     private val spellDao = db.spellsDao()
 
     private lateinit var user: User
     var spells = mutableStateListOf<Spells>()
+
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error
 
     init {
         initializeData()
@@ -30,85 +36,51 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private fun initializeData() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val users = userDao.getAll()
-                if (users.isEmpty()) {
-                    val initialUser = User(
+                if (userDao.getAll().isEmpty()) {
+                    userDao.insert(User(
                         HP = 0, TmpHP = 0, MaxHP = 0, AC = 0,
                         Level1 = 0, Level2 = 0, Level3 = 0, Level4 = 0, Level5 = 0,
                         Level6 = 0, Level7 = 0, Level8 = 0, Level9 = 0,
                         MaxLevel1 = 0, MaxLevel2 = 0, MaxLevel3 = 0, MaxLevel4 = 0,
                         MaxLevel5 = 0, MaxLevel6 = 0, MaxLevel7 = 0, MaxLevel8 = 0,
                         MaxLevel9 = 0
-                    )
-                    userDao.insert(initialUser)
+                    ))
                 }
                 user = userDao.getUser()
                 val loadedSpells = spellDao.getAll()
 
-                // Compose snapshot state must only be written on the main thread
                 withContext(Dispatchers.Main) {
                     spells.clear()
                     spells.addAll(loadedSpells)
 
-                    Stats.hp.current      = getValuebyUser(user, Names.HP.value)
-                    Stats.hp.maxvalue     = getValuebyUser(user, Names.MaxHP.value)
-                    Stats.tmphp.current   = getValuebyUser(user, Names.TmpHP.value)
-                    Stats.ac.current      = getValuebyUser(user, Names.AC.value)
+                    Stats.hp.current      = getValueByUser(user, Names.HP.value)
+                    Stats.hp.maxvalue     = getValueByUser(user, Names.MaxHP.value)
+                    Stats.tmphp.current   = getValueByUser(user, Names.TmpHP.value)
+                    Stats.ac.current      = getValueByUser(user, Names.AC.value)
 
-                    Stats.level1.current  = getValuebyUser(user, Levels.Level1.value)
-                    Stats.level2.current  = getValuebyUser(user, Levels.Level2.value)
-                    Stats.level3.current  = getValuebyUser(user, Levels.Level3.value)
-                    Stats.level4.current  = getValuebyUser(user, Levels.Level4.value)
-                    Stats.level5.current  = getValuebyUser(user, Levels.Level5.value)
-                    Stats.level6.current  = getValuebyUser(user, Levels.Level6.value)
-                    Stats.level7.current  = getValuebyUser(user, Levels.Level7.value)
-                    Stats.level8.current  = getValuebyUser(user, Levels.Level8.value)
-                    Stats.level9.current  = getValuebyUser(user, Levels.Level9.value)
-
-                    Stats.level1.maxvalue = getValuebyUser(user, Levels.Level1.maxvalue)
-                    Stats.level2.maxvalue = getValuebyUser(user, Levels.Level2.maxvalue)
-                    Stats.level3.maxvalue = getValuebyUser(user, Levels.Level3.maxvalue)
-                    Stats.level4.maxvalue = getValuebyUser(user, Levels.Level4.maxvalue)
-                    Stats.level5.maxvalue = getValuebyUser(user, Levels.Level5.maxvalue)
-                    Stats.level6.maxvalue = getValuebyUser(user, Levels.Level6.maxvalue)
-                    Stats.level7.maxvalue = getValuebyUser(user, Levels.Level7.maxvalue)
-                    Stats.level8.maxvalue = getValuebyUser(user, Levels.Level8.maxvalue)
-                    Stats.level9.maxvalue = getValuebyUser(user, Levels.Level9.maxvalue)
+                    Levels.entries.forEach { level ->
+                        Stats.levelAttribute(level).current  = getValueByUser(user, level.value)
+                        Stats.levelAttribute(level).maxvalue = getValueByUser(user, level.maxvalue)
+                    }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("GameViewModel", "initializeData failed", e)
+                _error.value = "Failed to load data: ${e.message}"
             }
         }
     }
 
-    fun getSpellsbyLevel(level: Int): List<Spells> {
-        return spells.filter { it.level == level }
-    }
+    fun getSpellsbyLevel(level: Int): List<Spells> = spells.filter { it.level == level }
 
     fun setStats(name: String, value: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                when (name) {
-                    Names.MaxHP.value -> {
-                        withContext(Dispatchers.Main) { Stats.hp.maxvalue = value }
-                        setValuebyUser(user, userDao, Names.MaxHP.value, value)
-                    }
-                    Names.AC.value -> {
-                        withContext(Dispatchers.Main) { Stats.ac.current = value }
-                        setValuebyUser(user, userDao, Names.AC.value, value)
-                    }
-                    Names.HP.value -> {
-                        val capped = value.coerceAtMost(Stats.hp.maxvalue ?: 0)
-                        withContext(Dispatchers.Main) { Stats.hp.current = capped }
-                        setValuebyUser(user, userDao, Names.HP.value, capped)
-                    }
-                    Names.TmpHP.value -> {
-                        withContext(Dispatchers.Main) { Stats.tmphp.current = value }
-                        setValuebyUser(user, userDao, Names.TmpHP.value, value)
-                    }
-                }
+                val capped = if (name == Names.HP.value) value.coerceAtMost(Stats.hp.maxvalue ?: 0) else value
+                withContext(Dispatchers.Main) { Stats.setByName(name, capped) }
+                setValueByUser(user, userDao, name, capped)
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("GameViewModel", "setStats failed", e)
+                _error.value = "Failed to save stat: ${e.message}"
             }
         }
     }
@@ -118,23 +90,19 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val tmp = Stats.tmphp.current
                 val hp  = Stats.hp.current
-
                 if (tmp >= value) {
                     val newTmp = tmp - value
                     withContext(Dispatchers.Main) { Stats.tmphp.current = newTmp }
-                    setValuebyUser(user, userDao, Names.TmpHP.value, newTmp)
+                    setValueByUser(user, userDao, Names.TmpHP.value, newTmp)
                 } else {
-                    val leftover = value - tmp
-                    val newHp = (hp - leftover).coerceAtLeast(0)
-                    withContext(Dispatchers.Main) {
-                        Stats.tmphp.current = 0
-                        Stats.hp.current = newHp
-                    }
-                    setValuebyUser(user, userDao, Names.TmpHP.value, 0)
-                    setValuebyUser(user, userDao, Names.HP.value, newHp)
+                    val newHp = (hp - (value - tmp)).coerceAtLeast(0)
+                    withContext(Dispatchers.Main) { Stats.tmphp.current = 0; Stats.hp.current = newHp }
+                    setValueByUser(user, userDao, Names.TmpHP.value, 0)
+                    setValueByUser(user, userDao, Names.HP.value, newHp)
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("GameViewModel", "takeDamage failed", e)
+                _error.value = "Failed to apply damage: ${e.message}"
             }
         }
     }
@@ -147,88 +115,65 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                     Names.HP.value -> {
                         val newHp = (Stats.hp.current + value).coerceAtMost(Stats.hp.maxvalue ?: 0)
                         withContext(Dispatchers.Main) { Stats.hp.current = newHp }
-                        setValuebyUser(user, userDao, Names.HP.value, newHp)
+                        setValueByUser(user, userDao, Names.HP.value, newHp)
                     }
                     Names.TmpHP.value -> {
                         val newTmp = Stats.tmphp.current + value
                         withContext(Dispatchers.Main) { Stats.tmphp.current = newTmp }
-                        setValuebyUser(user, userDao, Names.TmpHP.value, newTmp)
+                        setValueByUser(user, userDao, Names.TmpHP.value, newTmp)
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("GameViewModel", "addHP failed", e)
+                _error.value = "Failed to heal: ${e.message}"
             }
         }
     }
 
-    fun spellAdder(
-        name: String, level: Int, description: String,
-        components: String, duration: Int, casttime: String, distance: Int
-    ) {
+    fun spellAdder(name: String, level: Int, description: String, components: String, duration: Int, casttime: String, distance: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                spellDao.insert(
-                    Spells(
-                        name = name, level = level, description = description,
-                        components = components, duration = duration,
-                        casttime = casttime, distance = distance
-                    )
-                )
+                spellDao.insert(Spells(name = name, level = level, description = description, components = components, duration = duration, casttime = casttime, distance = distance))
                 val loaded = spellDao.getAll()
-                withContext(Dispatchers.Main) {
-                    spells.clear()
-                    spells.addAll(loaded)
-                }
+                withContext(Dispatchers.Main) { spells.clear(); spells.addAll(loaded) }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("GameViewModel", "spellAdder failed", e)
+                _error.value = "Failed to add spell: ${e.message}"
             }
         }
     }
 
+    // виправлено: тепер оновлює Stats, а не тільки Room
     fun valuesetter(name: String, newValue: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                setValuebyUser(user, userDao, name, newValue)
+                withContext(Dispatchers.Main) { Stats.setByName(name, newValue) }
+                setValueByUser(user, userDao, name, newValue)
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("GameViewModel", "valuesetter failed", e)
+                _error.value = "Failed to save value: ${e.message}"
             }
         }
     }
 
-    fun saveAllToCloud() {
-        cloudSave(getApplication())
-    }
+    fun saveAllToCloud() { cloudSave(getApplication()) }
 
     fun loadAllFromCloud() {
         cloudLoad(getApplication()) {
             viewModelScope.launch(Dispatchers.IO) {
                 try {
-                    // Sync cloud-loaded Stats back into Room
-                    user.HP        = Stats.hp.current
-                    user.MaxHP     = Stats.hp.maxvalue ?: 0
-                    user.TmpHP     = Stats.tmphp.current
-                    user.AC        = Stats.ac.current
-                    user.Level1    = Stats.level1.current
-                    user.Level2    = Stats.level2.current
-                    user.Level3    = Stats.level3.current
-                    user.Level4    = Stats.level4.current
-                    user.Level5    = Stats.level5.current
-                    user.Level6    = Stats.level6.current
-                    user.Level7    = Stats.level7.current
-                    user.Level8    = Stats.level8.current
-                    user.Level9    = Stats.level9.current
-                    user.MaxLevel1 = Stats.level1.maxvalue ?: 0
-                    user.MaxLevel2 = Stats.level2.maxvalue ?: 0
-                    user.MaxLevel3 = Stats.level3.maxvalue ?: 0
-                    user.MaxLevel4 = Stats.level4.maxvalue ?: 0
-                    user.MaxLevel5 = Stats.level5.maxvalue ?: 0
-                    user.MaxLevel6 = Stats.level6.maxvalue ?: 0
-                    user.MaxLevel7 = Stats.level7.maxvalue ?: 0
-                    user.MaxLevel8 = Stats.level8.maxvalue ?: 0
-                    user.MaxLevel9 = Stats.level9.maxvalue ?: 0
+                    Levels.entries.forEach { level ->
+                        setValueByUser(user, userDao, level.value,    Stats.levelAttribute(level).current)
+                        setValueByUser(user, userDao, level.maxvalue, Stats.levelAttribute(level).maxvalue ?: 0)
+                    }
+                    user.HP    = Stats.hp.current
+                    user.MaxHP = Stats.hp.maxvalue ?: 0
+                    user.TmpHP = Stats.tmphp.current
+                    user.AC    = Stats.ac.current
                     userDao.updateUsers(user)
                 } catch (e: Exception) {
-                    e.printStackTrace()
+                    Log.e("GameViewModel", "loadAllFromCloud sync failed", e)
+                    _error.value = "Failed to sync cloud data: ${e.message}"
                 }
             }
         }
@@ -236,24 +181,22 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     fun sendNotification(context: Context, title: String, message: String) {
         val channelId = "game_notifications"
-        val notificationManager =
-            context.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager = context.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId, "Game Events", NotificationManager.IMPORTANCE_DEFAULT
+            notificationManager.createNotificationChannel(
+                NotificationChannel(channelId, "Game Events", NotificationManager.IMPORTANCE_DEFAULT)
             )
-            notificationManager.createNotificationChannel(channel)
         }
 
-        val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.frog)
-            .setContentTitle(title)
-            .setContentText(message)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setAutoCancel(true)
-            .build()
-
-        notificationManager.notify(1, notification)
+        notificationManager.notify(1,
+            NotificationCompat.Builder(context, channelId)
+                .setSmallIcon(R.drawable.frog)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setAutoCancel(true)
+                .build()
+        )
     }
 }
