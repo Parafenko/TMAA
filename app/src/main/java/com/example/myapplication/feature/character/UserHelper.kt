@@ -56,6 +56,5 @@ suspend fun setValueByUser(user: User, userDao: UserDao, name: String, value: In
         "MaxLevel8"  -> user.MaxLevel8  = value
         "MaxLevel9"  -> user.MaxLevel9  = value
     }
-    Stats.setByName(name, value)
     userDao.updateUsers(user)
 }

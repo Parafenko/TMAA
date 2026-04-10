@@ -10,7 +10,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [User::class, Spells::class], version = 1)
+@Database(entities = [User::class, Spells::class], version = 2)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun spellsDao(): SpellDao
@@ -25,7 +25,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "database-name"
-                ).build().also { INSTANCE = it }
+                )
+                .fallbackToDestructiveMigration()
+                .build().also { INSTANCE = it }
             }
         }
     }

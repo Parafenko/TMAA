@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import android.widget.Toast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +24,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class GameViewModel(application: Application) : AndroidViewModel(application) {
+
+    private fun showErrorToast(msg: String) {
+        viewModelScope.launch(Dispatchers.Main) {
+            Toast.makeText(getApplication(), msg, Toast.LENGTH_LONG).show()
+        }
+    }
 
     private val db       = AppDatabase.getDatabase(application)
     private val userDao  = db.userDao()
@@ -70,7 +77,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 Log.e("GameViewModel", "initializeData failed", e)
-                _error.value = "Failed to load data: ${e.message}"
+                showErrorToast("Init fail: ${e.message}")
             }
         }
     }
@@ -85,7 +92,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 setValueByUser(user, userDao, name, capped)
             } catch (e: Exception) {
                 Log.e("GameViewModel", "setStats failed", e)
-                _error.value = "Failed to save stat: ${e.message}"
+                showErrorToast("setStats fail: ${e.message}")
             }
         }
     }
@@ -107,7 +114,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 Log.e("GameViewModel", "takeDamage failed", e)
-                _error.value = "Failed to apply damage: ${e.message}"
+                showErrorToast("Dmg fail: ${e.message}")
             }
         }
     }
@@ -130,7 +137,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 Log.e("GameViewModel", "addHP failed", e)
-                _error.value = "Failed to heal: ${e.message}"
+                showErrorToast("Heal fail: ${e.message}")
             }
         }
     }
@@ -143,7 +150,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 withContext(Dispatchers.Main) { spells.clear(); spells.addAll(loaded) }
             } catch (e: Exception) {
                 Log.e("GameViewModel", "spellAdder failed", e)
-                _error.value = "Failed to add spell: ${e.message}"
+                showErrorToast("Spell fail: ${e.message}")
             }
         }
     }
@@ -155,7 +162,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 setValueByUser(user, userDao, name, newValue)
             } catch (e: Exception) {
                 Log.e("GameViewModel", "valuesetter failed", e)
-                _error.value = "Failed to save value: ${e.message}"
+                showErrorToast("Setter fail: ${e.message}")
             }
         }
     }
@@ -177,7 +184,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                     userDao.updateUsers(user)
                 } catch (e: Exception) {
                     Log.e("GameViewModel", "loadAllFromCloud sync failed", e)
-                    _error.value = "Failed to sync cloud data: ${e.message}"
+                    showErrorToast("Cloud sync fail: ${e.message}")
                 }
             }
         }
