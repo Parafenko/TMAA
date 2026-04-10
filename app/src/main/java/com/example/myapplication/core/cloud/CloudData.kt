@@ -46,7 +46,6 @@ fun cloudSave(context: Context) {
         .set(data)
 }
 
-// onLoaded викликається на Main thread (Firestore listener вже на Main)
 fun cloudLoad(context: Context, onLoaded: () -> Unit) {
     val prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
     val deviceId = prefs.getString("device_id", null) ?: return

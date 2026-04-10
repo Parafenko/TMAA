@@ -148,7 +148,6 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // виправлено: тепер оновлює Stats, а не тільки Room
     fun valuesetter(name: String, newValue: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
