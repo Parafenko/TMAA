@@ -9,16 +9,15 @@ import android.content.Context
 import com.google.firebase.firestore.FirebaseFirestore
 import java.util.UUID
 
+import android.provider.Settings
+
 fun cloudSave(context: Context) {
-    val prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-    val deviceId = prefs.getString("device_id", null) ?: UUID.randomUUID().toString().also {
-        prefs.edit().putString("device_id", it).apply()
-    }
+    val deviceId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID) ?: "default_device"
 
     val data = hashMapOf(
         "HP"         to Stats.hp.current,
-        "Max.HP"     to Stats.hp.maxvalue,
-        "Tmp.HP"     to Stats.tmphp.current,
+        "MaxHP"      to Stats.hp.maxvalue,
+        "TmpHP"      to Stats.tmphp.current,
         "AC"         to Stats.ac.current,
         "Level1"     to Stats.level1.current,
         "Level2"     to Stats.level2.current,
@@ -47,8 +46,7 @@ fun cloudSave(context: Context) {
 }
 
 fun cloudLoad(context: Context, onLoaded: () -> Unit) {
-    val prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-    val deviceId = prefs.getString("device_id", null) ?: return
+    val deviceId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID) ?: "default_device"
 
     FirebaseFirestore.getInstance()
         .collection("users")
@@ -58,8 +56,8 @@ fun cloudLoad(context: Context, onLoaded: () -> Unit) {
             if (!document.exists()) return@addOnSuccessListener
 
             Stats.hp.current      = document.getLong("HP")?.toInt()         ?: Stats.hp.current
-            Stats.hp.maxvalue     = document.getLong("Max.HP")?.toInt()      ?: Stats.hp.maxvalue
-            Stats.tmphp.current   = document.getLong("Tmp.HP")?.toInt()      ?: Stats.tmphp.current
+            Stats.hp.maxvalue     = document.getLong("MaxHP")?.toInt()      ?: Stats.hp.maxvalue
+            Stats.tmphp.current   = document.getLong("TmpHP")?.toInt()      ?: Stats.tmphp.current
             Stats.ac.current      = document.getLong("AC")?.toInt()          ?: Stats.ac.current
             Stats.level1.current  = document.getLong("Level1")?.toInt()      ?: Stats.level1.current
             Stats.level2.current  = document.getLong("Level2")?.toInt()      ?: Stats.level2.current

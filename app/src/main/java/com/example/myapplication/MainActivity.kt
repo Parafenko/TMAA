@@ -16,7 +16,7 @@ import com.example.myapplication.ui.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: GameViewModel by viewModels()
+    private val viewModel: GameViewModel by viewModels { GameViewModel.Factory }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

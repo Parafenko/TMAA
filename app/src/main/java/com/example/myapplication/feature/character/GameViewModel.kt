@@ -4,6 +4,8 @@ import com.example.myapplication.*
 import com.example.myapplication.feature.spells.*
 import com.example.myapplication.core.db.*
 import com.example.myapplication.core.cloud.*
+import com.example.myapplication.core.network.NetworkClient
+import com.example.myapplication.core.network.JokeApi
 
 import android.app.Application
 import android.app.NotificationChannel
@@ -15,7 +17,10 @@ import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import android.widget.Toast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,17 +28,18 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class GameViewModel(application: Application) : AndroidViewModel(application) {
+class GameViewModel(
+    application: Application,
+    private val userDao: UserDao,
+    private val spellDao: SpellDao,
+    private val jokeApi: JokeApi
+) : AndroidViewModel(application) {
 
     private fun showErrorToast(msg: String) {
         viewModelScope.launch(Dispatchers.Main) {
             Toast.makeText(getApplication(), msg, Toast.LENGTH_LONG).show()
         }
     }
-
-    private val db       = AppDatabase.getDatabase(application)
-    private val userDao  = db.userDao()
-    private val spellDao = db.spellsDao()
 
     private lateinit var user: User
     var spells = mutableStateListOf<Spells>()
@@ -100,6 +106,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     fun takeDamage(value: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                if (value <= 0) return@launch
                 val tmp = Stats.tmphp.current
                 val hp  = Stats.hp.current
                 if (tmp >= value) {
@@ -213,30 +220,30 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     fun fetchRandomTip(context: Context) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val url = java.net.URL("https://official-joke-api.appspot.com/random_joke")
-                val connection = url.openConnection() as java.net.HttpURLConnection
-                connection.requestMethod = "GET"
-                connection.connect()
-
-                if (connection.responseCode == java.net.HttpURLConnection.HTTP_OK) {
-                    val stream = connection.inputStream
-                    val reader = java.io.BufferedReader(java.io.InputStreamReader(stream))
-                    val result = reader.readText()
-                    reader.close()
-
-                    val json = org.json.JSONObject(result)
-                    val setup = json.optString("setup", "What did the API say?")
-                    val punchline = json.optString("punchline", "200 OK")
-
-                    withContext(Dispatchers.Main) {
-                        sendNotification(context, "API Joke", "$setup - $punchline")
-                    }
+                val joke = jokeApi.getRandomJoke()
+                withContext(Dispatchers.Main) {
+                    sendNotification(context, "API Joke", "${joke.setup} - ${joke.punchline}")
                 }
             } catch (e: Exception) {
                 Log.e("GameViewModel", "fetchRandomTip failed", e)
                 withContext(Dispatchers.Main) {
                     sendNotification(context, "API Error", e.localizedMessage ?: "Failed")
                 }
+            }
+        }
+    }
+
+    companion object {
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                val application = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as Application
+                val database = AppDatabase.getDatabase(application)
+                GameViewModel(
+                    application = application,
+                    userDao = database.userDao(),
+                    spellDao = database.spellsDao(),
+                    jokeApi = NetworkClient.jokeApi
+                )
             }
         }
     }
