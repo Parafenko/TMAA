@@ -1,9 +1,12 @@
 package com.example.myapplication
 
-import com.example.myapplication.feature.character.*
-import com.example.myapplication.core.db.*
-import com.example.myapplication.core.cloud.*
-import com.example.myapplication.feature.spells.*
+import com.example.myapplication.domain.models.*
+import com.example.myapplication.data.local.*
+import com.example.myapplication.data.remote.*
+import com.example.myapplication.data.repository.*
+import com.example.myapplication.ui.components.*
+import com.example.myapplication.ui.screens.*
+import com.example.myapplication.ui.viewmodel.*
 
 import android.Manifest
 import android.os.Build

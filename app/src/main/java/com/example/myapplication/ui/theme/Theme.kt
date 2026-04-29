@@ -1,5 +1,13 @@
 package com.example.myapplication.ui.theme
 
+import com.example.myapplication.domain.models.*
+import com.example.myapplication.data.local.*
+import com.example.myapplication.data.remote.*
+import com.example.myapplication.data.repository.*
+import com.example.myapplication.ui.components.*
+import com.example.myapplication.ui.screens.*
+import com.example.myapplication.ui.viewmodel.*
+
 import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
